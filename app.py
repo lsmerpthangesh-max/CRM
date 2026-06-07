@@ -4,12 +4,12 @@ import urllib.parse
 import time
 import os
 
-st.set_page_config(page_title="Lingam Super Market WhatsApp", layout="wide")
+st.set_page_config(page_title="Lingam Super Market WhatsApp Sender", layout="wide")
 
 st.title("🛒 Lingam Super Market - WhatsApp Bulk Sender")
-st.markdown("**Upload → Generate → Send Automation**")
+st.markdown("**Efficient Automation System**")
 
-# Template Download
+# Download Template
 template_path = "/home/workdir/artifacts/lingam_customers_template.xlsx"
 if os.path.exists(template_path):
     with open(template_path, "rb") as f:
@@ -24,17 +24,15 @@ uploaded_file = st.file_uploader("Upload your customers.xlsx file", type=["xlsx"
 
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
-    st.success(f"✅ Loaded **{len(df)}** customers successfully!")
+    st.success(f"✅ Loaded **{len(df)}** customers")
     st.dataframe(df.head(20), use_container_width=True)
 
-    delay = st.slider("Delay between messages (seconds)", 10, 45, 18)
+    delay = st.slider("Delay between messages (seconds)", 15, 60, 25)
 
-    if st.button("🚀 Generate & Start Sending Process", type="primary", use_container_width=True):
+    if st.button("🚀 START AUTOMATIC LINK OPENING", type="primary", use_container_width=True):
         if 'Customer Name' not in df.columns or 'Phone Number' not in df.columns:
-            st.error("Missing required columns: Customer Name and Phone Number")
+            st.error("Missing columns: Customer Name and Phone Number")
         else:
-            st.subheader("🔄 Processing Messages...")
-
             templates = {
                 "ThankYou": "Dear {name}, Thank you for shopping at Lingam Super Market! நன்றி உங்கள் ஆதரவுக்கு! Visit again soon.",
                 "Promo": "Dear {name}, Month-end special offer at Lingam Super Market! Up to 20% OFF! இந்த மாத இறுதி சலுகை! Hurry!",
@@ -42,35 +40,30 @@ if uploaded_file is not None:
             }
 
             progress_bar = st.progress(0)
-            status_text = st.empty()
-            success_count = 0
+            status = st.empty()
 
             for idx, row in df.iterrows():
-                name = str(row.get('Customer Name', 'Customer')).strip()
-                phone_raw = str(row.get('Phone Number', '')).strip()
-                phone = phone_raw.replace("+", "").replace(" ", "")
+                name = str(row.get('Customer Name', '')).strip()
+                phone = str(row.get('Phone Number', '')).strip().replace(" ", "").replace("+", "")
                 campaign = str(row.get('Campaign Type', 'ThankYou')).strip()
 
                 message = templates.get(campaign, templates["ThankYou"]).format(name=name)
-                encoded_message = urllib.parse.quote(message)
-                
-                wa_link = f"https://wa.me/{phone}?text={encoded_message}"
+                encoded = urllib.parse.quote(message)
 
-                status_text.text(f"[{idx+1}/{len(df)}] Opening link for {name}...")
+                link = f"https://wa.me/{phone}?text={encoded}"
+
+                status.text(f"[{idx+1}/{len(df)}] Opening WhatsApp for **{name}**...")
                 
-                # Display clickable link
-                st.markdown(f"**{idx+1}. {name}** → [📱 Click to Send]({wa_link})")
-                
-                success_count += 1
+                # Show clickable link
+                st.markdown(f"**{idx+1}. {name}** → [📱 OPEN & SEND]({link})")
+
                 progress_bar.progress((idx + 1) / len(df))
-                
-                # Auto wait before next
-                time.sleep(delay)
+                time.sleep(delay)   # Wait before next link
 
-            st.success(f"🎉 Process Completed! Generated {success_count} messages.")
-            st.info("✅ Open WhatsApp Web → Click the links one by one. Messages are pre-filled.")
+            st.success("✅ All links processed! Now click 'Send' in WhatsApp for each chat.")
+            st.info("💡 Keep WhatsApp Web open in Chrome. Click the links one by one.")
 
 else:
-    st.info("👆 Please upload your customer Excel file.")
+    st.info("👆 Upload your Excel file first")
 
-st.caption("This is the most stable free method. WhatsApp Web must be open.")
+st.caption("This is the most stable method. Full auto-click is not possible reliably in Streamlit on server.")
