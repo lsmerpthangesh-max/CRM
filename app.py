@@ -2,33 +2,36 @@ import streamlit as st
 import pandas as pd
 import pywhatkit
 import time
-import os
-from datetime import datetime
 
-st.set_page_config(page_title="Lingam Super Market WhatsApp Sender", layout="wide")
+st.set_page_config(page_title="Lingam Super Market WhatsApp", layout="wide")
+
 st.title("🛒 Lingam Super Market - WhatsApp Bulk Sender")
-st.markdown("### Professional Automated Messaging System")
+st.markdown("**Automated WhatsApp Messaging System**")
 
-# File Upload
-uploaded_file = st.file_uploader("Upload your customer Excel file", type=["xlsx", "xls"])
+# Template Download
+st.download_button(
+    label="📥 Download Excel Template",
+    data=open("/home/workdir/artifacts/lingam_customers_template.xlsx", "rb").read(),
+    file_name="lingam_customers_template.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+uploaded_file = st.file_uploader("Upload your customers.xlsx file", type=["xlsx"])
 
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
-    st.success(f"✅ File loaded successfully! Total Customers: **{len(df)}**")
-    
-    st.subheader("📋 Customer Data Preview")
+    st.success(f"✅ Loaded {len(df)} customers successfully!")
     st.dataframe(df.head(20), use_container_width=True)
-    
-    # Configuration
+
     col1, col2 = st.columns(2)
     with col1:
-        delay = st.slider("Delay between messages (seconds)", 25, 60, 35)
+        delay = st.slider("Delay between messages (seconds)", 25, 90, 35)
     with col2:
-        start_row = st.number_input("Start from row (0 = first customer)", min_value=0, value=0)
-    
-    if st.button("🚀 Start Sending Messages", type="primary", use_container_width=True):
+        start_row = st.number_input("Start from row (0 = first)", min_value=0, value=0)
+
+    if st.button("🚀 START BULK SENDING", type="primary", use_container_width=True):
         if 'Customer Name' not in df.columns or 'Phone Number' not in df.columns:
-            st.error("Missing required columns: 'Customer Name' and 'Phone Number'")
+            st.error("Required columns missing: 'Customer Name' and 'Phone Number'")
         else:
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -36,10 +39,10 @@ if uploaded_file is not None:
             success = 0
             failed = 0
             
-            TEMPLATES = {
-                "ThankYou": "Dear {name},\nThank you for shopping at Lingam Super Market!\nநன்றி உங்கள் ஆதரவுக்கு! Visit us again soon.",
+            templates = {
+                "ThankYou": "Dear {name},\nThank you for shopping at Lingam Super Market!\nநன்றி உங்கள் ஆதரவுக்கு! Visit again soon.",
                 "Promo": "Dear {name},\nMonth-end special offer at Lingam Super Market!\nUp to 20% OFF!\nஇந்த மாத இறுதி சலுகை!",
-                "ReEngage": "Dear {name},\nWe miss you at Lingam Super Market!\nSpecial 10% discount waiting.\nமீண்டும் வருகை தரவும்!"
+                "ReEngage": "Dear {name},\nWe miss you at Lingam Super Market!\nSpecial discount waiting for you.\nமீண்டும் வருகை தரவும்!"
             }
             
             for idx, row in df.iterrows():
@@ -50,7 +53,7 @@ if uploaded_file is not None:
                 phone = str(row['Phone Number']).strip().replace(" ", "")
                 campaign = str(row.get('Campaign Type', 'ThankYou')).strip()
                 
-                message = TEMPLATES.get(campaign, TEMPLATES["ThankYou"]).format(name=name)
+                message = templates.get(campaign, templates["ThankYou"]).format(name=name)
                 
                 try:
                     status_text.text(f"Sending to {name} ({phone})...")
@@ -70,18 +73,7 @@ if uploaded_file is not None:
                 progress_bar.progress(progress)
                 time.sleep(delay)
             
-            st.success(f"✅ Automation Completed! Sent: {success} | Failed: {failed}")
+            st.success(f"✅ Process Completed! Success: {success} | Failed: {failed}")
 
 else:
-    st.info("👆 Please upload your Excel file using the template provided below.")
-
-# Download Template Button
-with open("/home/workdir/artifacts/lingam_customers_template.xlsx", "rb") as file:
-    st.download_button(
-        label="📥 Download Excel Template",
-        data=file,
-        file_name="lingam_customers_template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-st.caption("Note: Keep WhatsApp Web open and logged in on Chrome during sending.")
+    st.info("👆 Upload your Excel file to start automation.")
