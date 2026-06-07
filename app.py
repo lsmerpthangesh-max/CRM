@@ -4,66 +4,81 @@ import urllib.parse
 import time
 import os
 
-st.set_page_config(page_title="Lingam Super Market WhatsApp Sender", layout="wide")
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 
-st.title("🛒 Lingam Super Market - WhatsApp Bulk Sender")
-st.markdown("**Efficient Automation System**")
+st.set_page_config(page_title="Lingam Auto WhatsApp Sender", layout="wide")
 
-# Download Template
-template_path = "/home/workdir/artifacts/lingam_customers_template.xlsx"
-if os.path.exists(template_path):
-    with open(template_path, "rb") as f:
-        st.download_button(
-            label="📥 Download Excel Template",
-            data=f,
-            file_name="lingam_customers_template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+st.title("🛒 Lingam Super Market - FULL AUTO WhatsApp Sender")
 
-uploaded_file = st.file_uploader("Upload your customers.xlsx file", type=["xlsx"])
+uploaded_file = st.file_uploader("Upload customers.xlsx", type=["xlsx"])
 
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
-    st.success(f"✅ Loaded **{len(df)}** customers")
-    st.dataframe(df.head(20), use_container_width=True)
 
-    delay = st.slider("Delay between messages (seconds)", 15, 60, 25)
+    st.success(f"Loaded {len(df)} customers")
+    st.dataframe(df.head())
 
-    if st.button("🚀 START AUTOMATIC LINK OPENING", type="primary", use_container_width=True):
+    delay = st.slider("Delay (seconds)", 10, 60, 20)
+
+    if st.button("🚀 START FULL AUTO SEND"):
+
         if 'Customer Name' not in df.columns or 'Phone Number' not in df.columns:
-            st.error("Missing columns: Customer Name and Phone Number")
+            st.error("Excel must contain 'Customer Name' and 'Phone Number'")
         else:
+
+            # Message Templates
             templates = {
-                "ThankYou": "Dear {name}, Thank you for shopping at Lingam Super Market! நன்றி உங்கள் ஆதரவுக்கு! Visit again soon.",
-                "Promo": "Dear {name}, Month-end special offer at Lingam Super Market! Up to 20% OFF! இந்த மாத இறுதி சலுகை! Hurry!",
-                "ReEngage": "Dear {name}, We miss you at Lingam Super Market! Special 10% discount waiting. மீண்டும் வருகை தரவும்!"
+                "ThankYou": "Dear {name}, Thank you for shopping at Lingam Super Market! நன்றி!",
+                "Promo": "Dear {name}, Month-end offer! Up to 20% OFF! Hurry!",
+                "ReEngage": "Dear {name}, We miss you! Come back & get 10% discount!"
             }
 
-            progress_bar = st.progress(0)
+            # Chrome setup
+            chrome_options = Options()
+            chrome_options.add_argument("--start-maximized")
+
+            driver = webdriver.Chrome(options=chrome_options)
+
+            # Open WhatsApp Web
+            driver.get("https://web.whatsapp.com")
+
+            st.warning("📱 Scan QR Code in browser (only first time)")
+            time.sleep(20)  # time to scan QR
+
+            progress = st.progress(0)
             status = st.empty()
 
-            for idx, row in df.iterrows():
-                name = str(row.get('Customer Name', '')).strip()
-                phone = str(row.get('Phone Number', '')).strip().replace(" ", "").replace("+", "")
-                campaign = str(row.get('Campaign Type', 'ThankYou')).strip()
+            for i, row in df.iterrows():
+
+                name = str(row['Customer Name'])
+                phone = str(row['Phone Number']).replace("+", "").replace(" ", "")
+                campaign = str(row.get('Campaign Type', 'ThankYou'))
 
                 message = templates.get(campaign, templates["ThankYou"]).format(name=name)
-                encoded = urllib.parse.quote(message)
 
-                link = f"https://wa.me/{phone}?text={encoded}"
+                encoded_msg = urllib.parse.quote(message)
 
-                status.text(f"[{idx+1}/{len(df)}] Opening WhatsApp for **{name}**...")
-                
-                # Show clickable link
-                st.markdown(f"**{idx+1}. {name}** → [📱 OPEN & SEND]({link})")
+                url = f"https://web.whatsapp.com/send?phone={phone}&text={encoded_msg}"
 
-                progress_bar.progress((idx + 1) / len(df))
-                time.sleep(delay)   # Wait before next link
+                driver.get(url)
 
-            st.success("✅ All links processed! Now click 'Send' in WhatsApp for each chat.")
-            st.info("💡 Keep WhatsApp Web open in Chrome. Click the links one by one.")
+                status.text(f"Sending to {name} ({i+1}/{len(df)})")
 
-else:
-    st.info("👆 Upload your Excel file first")
+                # Wait for message box
+                time.sleep(10)
 
-st.caption("This is the most stable method. Full auto-click is not possible reliably in Streamlit on server.")
+                try:
+                    # Press Enter to send
+                    box = driver.find_element(By.XPATH, '//div[@contenteditable="true"][@data-tab="10"]')
+                    box.send_keys(Keys.ENTER)
+                except:
+                    st.error(f"Failed for {name}")
+
+                time.sleep(delay)
+
+                progress.progress((i+1)/len(df))
+
+            st.success("✅ ALL MESSAGES SENT AUTOMATICALLY!")
