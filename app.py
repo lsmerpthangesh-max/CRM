@@ -6,6 +6,7 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 st.set_page_config(page_title="Lingam WhatsApp Auto Sender", layout="wide")
@@ -17,6 +18,7 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
     st.success(f"Loaded {len(df)} customers")
+    st.dataframe(df.head())
 
     delay = st.slider("Delay (seconds)", 10, 60, 20)
 
@@ -32,16 +34,17 @@ if uploaded_file:
                 "ReEngage": "Dear {name}, We miss you! Come back & get discount!"
             }
 
-            # Chrome setup with profile (NO QR every time)
+            # ✅ Chrome Options
             options = webdriver.ChromeOptions()
             options.add_argument("user-data-dir=chrome_profile")
 
-            driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+            # ✅ FIXED DRIVER INITIALIZATION
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
 
             driver.get("https://web.whatsapp.com")
 
-            st.warning("Scan QR if first time...")
-
+            st.warning("📱 Scan QR code if first time...")
             time.sleep(15)
 
             progress = st.progress(0)
@@ -71,4 +74,4 @@ if uploaded_file:
                 time.sleep(delay)
                 progress.progress((i+1)/len(df))
 
-            st.success("✅ Messages Sent Successfully!")
+            st.success("✅ All messages sent successfully!")
